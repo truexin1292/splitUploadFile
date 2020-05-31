@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>FileReader</title>
+  <style>
+    img {
+      width: 200px;
+      height: 200px;
+    }
+  </style>
+</head>
+<body>
+<input id="input" type="file" accept="text/plain">
+<div class="input-1">
+
+</div>
+<br/>
+<input id="input2" type="file" accept="image/png">
+<div class="input-2">
+
+</div>
+<script>
+  const input1 = document.querySelector('#input');
+
+  input1.addEventListener('change', () => {
+    const reader = new FileReader();
+    reader.readAsText(input1.files[0], 'utf8'); // input.files[0]为第一个文件
+    reader.onload = () => {
+      document.querySelector('.input-1').innerHTML += reader.result;  // reader.result为获取结果 ： txt里面的内容
+    };
+  }, false);
+</script>
+<script>
+  const input2 = document.querySelector('#input2');
+
+  input2.addEventListener('change', () => {
+    console.log(input2.files);
+    const reader = new FileReader();
+    reader.readAsDataURL(input2.files[0]); // input.files[0]为第一个文件
+    reader.onload = () => {
+      const img = new Image();
+      img.src = reader.result;
+      document.querySelector('.input-2').appendChild(img);  // reader.result为获取结果 ，base64位的图片
+    }
+  }, false)
+</script>
+</body>
+</html>

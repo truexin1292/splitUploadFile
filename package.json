@@ -1,0 +1,28 @@
+{
+  "name": "uploader",
+  "description": "uploader",
+  "version": "0.0.1",
+  "private": true,
+  "author": {
+    "name": "truexin",
+    "email": "truexin@163.com"
+  },
+  "dependencies": {
+    "concat-files": "^0.1.1",
+    "express": "^4.15.2",
+    "formidable": "^1.0.15",
+    "fs-extra": "^5.0.0",
+    "multer": "^1.4.2",
+    "webp-converter": "^2.2.3",
+    "body-parser": "^1.19.0",
+    "opn": "^5.1.0"
+  },
+  "scripts": {
+    "start": "node upload.js",
+    "dev": "yarn start",
+    "demo1": "cd demo && node demo1.js"
+  },
+  "engines": {
+    "node": ">=0.10.25"
+  }
+}

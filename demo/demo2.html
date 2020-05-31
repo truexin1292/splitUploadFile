@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta
+    name="viewport"
+    content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,initial-scale=1.0,user-scalable=no"
+  />
+  <meta
+    name="description"
+    content="-"
+  />
+  <meta name="keywords" content=""/>
+  <title>图片压缩</title>
+  <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.3.4/vconsole.min.js"></script>
+  <script>
+    new VConsole();
+  </script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    .page {
+      height: 100vh;
+      width: 100vw;
+      font-size: 16px;
+      color: #999;
+      padding: 20px;
+    }
+
+    .title {
+      padding: 20px 0;
+    }
+
+    #file {
+      opacity: 0;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+    }
+
+    .upload-btn {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      border-radius: 50%;
+      width: 100px;
+      height: 100px;
+      background: lightblue;
+      margin: auto;
+    }
+
+    .fixed-tips {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+    }
+
+    .upload-status {
+      margin: 20px 0;
+    }
+
+    img {
+      width: 200px;
+    }
+
+    .submit-btn {
+      width: 100px;
+      height: 40px;
+      margin: 20px auto 0;
+      border-radius: 10px;
+      background: lightblue;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .toast-mask {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: transparent;
+      z-index: 1;
+      display: none;
+    }
+
+    .toast-main {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .toast-content {
+      background: rgba(0, 0, 0, .6);
+      font-size: 14px;
+      color: #fff;
+      padding: 10px;
+      max-width: 300px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .loading {
+      width: 50px;
+    }
+
+    .upload-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: lightblue;
+    }
+
+    .compress-progress {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: green;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <p class="upload-progress"></p>
+  <p class="compress-progress"></p>
+  <p class="title">node实现上传、压缩图片：</p>
+  <div class="upload-btn">
+    <input type="file" id="file" accept="image/jpg,image/jpeg,image/png,image/svg,image/gif"
+           onchange="showPreview(this)">
+    <span class="fixed-tips">上传</span>
+  </div>
+  <div class="submit-btn" onclick="compressImg()">
+    压缩
+  </div>
+  <div class="upload-status">
+    <div>
+      原图片名称：<span class="file-name"></span>
+    </div>
+    <div>
+      原图片大小：<span class="file-size"></span>
+    </div>
+    <div>
+      上传状态：<span class="upload-txt"></span>
+    </div>
+  </div>
+  <div class="compress-status">
+    <div>
+      压缩后图片大小：<span class="compress-size"></span>
+    </div>
+    <div>
+      压缩状态：<span class="compress-txt"></span>
+    </div>
+  </div>
+</div>
+
+<div class="toast-mask">
+  <div class="toast-main">
+    <div class="toast-content">
+      <img src="loading.gif" class="loading"/>
+      <span class="toast-txt"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ToastMask = $('.toast-mask');
+  const $ToastTxt = $('.toast-txt');
+  const $Loading = $('.loading');
+  const $comProgress = $('.compress-progress');
+
+  function compressImg() {
+    let fileObj = document.getElementById('file').files[0];
+    if (!fileObj) {
+      showToast("请先上传图片");
+      return
+    }
+    showToast("压缩中...", true);
+    let form = new FormData();
+    let size = fileObj.size / (1024 * 1024);
+    $comProgress.css({
+      width: '10%'
+    });
+    //上传图片大于1M进行压缩
+    if (size > 1) {
+      photoCompress(
+        fileObj,
+        {
+          quality: 0.2
+        },
+        function (base64Codes) {
+          let compressFile = convertBase64UrlToBlob(base64Codes); // 等价于： compressFile = fileObj ，都是blob文件类型
+          form.append("file", compressFile); // 文件对象
+          $comProgress.css({
+            width: '100%'
+          });
+          const img = new Image();
+          img.onload = function () {
+            let fileSize = (compressFile.size / (1024 * 1024)).toFixed(2);
+            $('.compress-size').html(fileSize + 'M')
+          };
+          img.src = base64Codes;
+          $('.compress-status').append(img);
+          showToast("图片压缩成功");
+          $('.compress-txt').html('图片压缩成功');
+        }
+      )
+    } else {
+      form.append("file", fileObj);
+    }
+  }
+
+  /**
+   * @param file: 上传的图片
+   * @param objCompressed：压缩后的图片规格
+   * @param objDiv：容器或回调函数
+   */
+  function photoCompress(file, objCompressed, objDiv) {
+    let ready = new FileReader();
+    ready.readAsDataURL(file);
+    ready.onload = function () {
+      let fileResult = this.result;
+      canvasDataURL(fileResult, objCompressed, objDiv)
+    }
+  }
+
+  function canvasDataURL(path, objCompressed, callback) {
+    $comProgress.css({
+      width: '80%'
+    });
+    let img = new Image();
+    img.src = path;
+    img.onload = function () {
+      let that = this;
+      //默认压缩后图片规格
+      let quality = 0.5;
+      let w = that.width;
+      let h = that.height;
+      let scale = w / h;
+      //实际要求
+      w = objCompressed.width || w;
+      h = objCompressed.height || (w / scale);
+      if (objCompressed.quality && objCompressed.quality > 0 && objCompressed.quality <= 1) {
+        quality = objCompressed.quality;
+      }
+
+      //生成canvas
+      let canvas = document.createElement('canvas');
+      let ctx = canvas.getContext('2d');
+      // 创建属性节点
+      let anw = document.createAttribute("width");
+      anw.nodeValue = w;
+      let anh = document.createAttribute("height");
+      anh.nodeValue = h;
+      canvas.setAttributeNode(anw);
+      canvas.setAttributeNode(anh);
+      ctx.drawImage(that, 0, 0, w, h);
+
+      let base64 = canvas.toDataURL('image/jpeg', quality);
+      // 回调函数返回base64的值
+      callback(base64);
+    }
+  }
+
+  function convertBase64UrlToBlob(urlData) {
+    let arr = urlData.split(','), mime = arr[0].match(/:(.*?);/)[1], bstr = atob(arr[1]), n = bstr.length,
+      u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([ u8arr ], { type: mime });
+  }
+
+  function showPreview(source) {
+    showToast("上传中...", true);
+    let arrs = $(source).val().split('\\');
+    let filename = arrs[arrs.length - 1];
+    let file = source.files[0];
+    let total = file.size;
+    let size = (total / (1024 * 1024)).toFixed(2) + 'M';
+    $('.file-size').html(size);
+    $(".file-name").html(filename);
+    if (window.FileReader) {
+      let fr = new FileReader();
+      // fr.readAsText(file, 'utf8') // 读取txt文件
+      fr.readAsDataURL(file); // 读取图片文件
+      fr.onprogress = function (e) {
+        let progress = (e.loaded / total) * 100;
+        $('.upload-progress').css({ width: progress + '%' });
+      };
+      fr.onabort = function () {
+        showToast('文件上传中断，请重试');
+      };
+      fr.onerror = function () {
+        showToast("文件上传出错，请重试");
+      };
+      fr.onload = function () {
+        const img = new Image();
+        img.src = fr.result;
+        $('.upload-status').append(img);
+        showToast("图片上传成功");
+        $(".upload-txt").html('图片上传成功');
+      };
+    }
+  }
+
+  function showToast(txt, isShowLoading) {
+    $ToastMask.show();
+    if (isShowLoading) {
+      $ToastTxt.html(txt);
+      $Loading.show();
+      return;
+    }
+    $ToastTxt.html(txt);
+    $Loading.hide();
+    setTimeout(() => {
+      $ToastMask.hide();
+    }, 1000);
+  }
+</script>
+</body>
+</html>
