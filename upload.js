@@ -1,15 +1,15 @@
-let express = require('express');
-let formidable = require('formidable');
-let fs = require('fs-extra');
-let path = require('path');
-let concat = require('concat-files');
-let opn = require('opn');
-let multer = require('multer');//接收图片
-let webp = require('webp-converter');
+const express = require('express');
+const formidable = require('formidable');
+const fs = require('fs-extra');
+const path = require('path');
+const concat = require('concat-files');
+const opn = require('opn');
+const multer = require('multer');//接收图片
+const webp = require('webp-converter');
 
-let app = express();
-let uploadDir = 'nodeServer/uploads';
-let uploadDir2 = 'public/uploads/';
+const app = express();
+const uploadDir = 'nodeServer/uploads';
+const uploadDir2 = 'public/uploads/';
 
 // 处理静态资源
 app.use(express.static(path.join(__dirname)));
@@ -30,8 +30,7 @@ app.all('*', (req, res, next) => {
   }
 });
 
-app.get('/', function (req, resp) {
-  let query = req.query;
+app.get('/', (req, resp) => {
   resp.send('success!');
 });
 
@@ -86,10 +85,10 @@ app.all('/merge', (req, resp) => {
 });
 
 app.all('/upload', (req, resp) => {
-  var form = new formidable.IncomingForm({
+  let form = new formidable.IncomingForm({
     uploadDir: 'nodeServer/tmp'
   });
-  form.parse(req, function (err, fields, file) {
+  form.parse(req, (err, fields, file) => {
     let index = fields.index;
     let total = fields.total;
     let fileMd5Value = fields.fileMd5Value;
@@ -219,68 +218,50 @@ async function mergeFiles(srcDir, targetDir, newFileName, size) {
 }
 
 // -------------------------------------- multer ------------------------
-var upload = multer({ // 定义图片上传的临时目录
+let multerUpload = multer({ // 定义图片上传的临时目录
   dest: "public/uploads"
 });
 
-// 单域多文件上传：input[file]的 multiple=="multiple"
-app.post('/upload/more',
-  upload.array('imageFile', 5),
-  function (req, res, next) {
-    // req.files 是 前端表单name=="imageFile" 的多个文件信息（数组）,限制数量5，应该打印看一下
-    for (var i = 0; i < req.files.length; i++) {
-      // 图片会放在uploads目录并且没有后缀，需要自己转存，用到fs模块
-      // 对临时文件转存，fs.rename(oldPath, newPath,callback);
-      fs.rename(req.files[i].path, uploadDir2 + req.files[i].originalname, function (err) {
-        if (err) {
-          throw err;
-        }
-        console.log('done!');
-      })
-    }
-
-    res.writeHead(200, {
-      "Access-Control-Allow-Origin": "*"//允许跨域。。。
-    });
-    // req.body 将具有文本域数据, 如果存在的话
-    res.end(JSON.stringify(req.files) + JSON.stringify(req.body));
+// 多文件上传：input[file]的 multiple=="multiple"
+app.post(
+  '/upload/more',
+  multerUpload.array('imageFile', 5),
+  (req, res, next) => { // req.files 是 前端表单name=="imageFile" 的多个文件信息（数组），限制数量5
+    const files = req.files || [];
+    console.log('more-files', files);
+    files.forEach(v => {
+      renameFile(v);
+    })
+    res.send({
+      code: 200,
+      data: req.files,
+      decs: 'success'
+    })
   }
 );
 
-// 单域单文件上传：input[file]的 multiple != "multiple"
-app.post('/upload/single',
-  upload.single('imageFile'),
-  function (req, res, next) { // req.file 是 前端表单name=="imageFile" 的文件信息（不是数组）
-    console.log(req.file)
-    var imgType = req.file.mimetype; // 图片类型
-    var originUrl = uploadDir2 + req.file.originalname; // 上传原图片的地址
-    var webpUrl = uploadDir2 + req.file.originalname.split(".")[0] + ".webp";
-    fs.rename(
-      req.file.path,
-      originUrl,
-      function (err) {
-        if (err) {
-          throw err;
-        }
-        console.log('上传成功!');
-      }
-    );
-
+app.post(
+  '/upload/single',
+  multerUpload.single('imageFile'),
+  async (req, res, next) => { // req.file 是 前端表单name=="imageFile" 的文件信息（不是数组）
+    console.log('single-file', req.file);
+    let imgType = req.file.mimetype; // 图片类型
+    let originUrl = uploadDir2 + req.file.originalname; // 上传原图片的地址
+    let webpUrl = uploadDir2 + req.file.originalname.split(".")[0] + ".webp";
+    renameFile(req.file);
     if (imgType === "image/png" || imgType === "image/jpeg") {
       // 压缩转换为webp格式图片 webp.cwebp前两个参数，第一个为原文件地址，第二个为生成的目标文件
       webp.cwebp(
         originUrl,
         webpUrl,
         "-q 80",
-        function (status, error) {
+        (status, error) => {
           console.log(status, error);
           //第一种方式
-          let downloadImg = webpUrl;
-          res.download(downloadImg); //直接调用download方法即可
+          res.download(webpUrl); //直接调用download方法即可
 
           //第二种方式
-          // let downloadImg = webpUrl;
-          // let load = fs.createReadStream(__dirname + '/' + road); //创建输入流入口
+          // let load = fs.createReadStream(__dirname + '/' + webpUrl); //创建输入流入口
           // res.writeHead(200, {
           //   'Content-Type': 'application/force-download',
           //   'Content-Disposition': 'attachment; filename=name'
@@ -289,33 +270,68 @@ app.post('/upload/single',
         }
       );
       // 压缩图片为webp格式后删除原文件
-      setTimeout(() => { // 等待0.5s后删除原文件，也可以使用await
-        fs.unlink(originUrl, function (error) {
-          if (error) {
-            console.log(error);
-            return false;
+      await fs.unlink(
+        originUrl, err => {
+          if (err) {
+            throw err;
+          } else {
+            console.log('删除文件成功');
           }
-          console.log('删除文件成功');
-        })
-      }, 500);
+        }
+      );
+      await res.send({
+        code: 200,
+        data: req.file,
+        decs: 'success'
+      })
     }
-
-    // res.send({
-    //   stat: 1,
-    //   desc: 'Success'
-    // })
   }
 );
 
-var cpUpload = upload.fields([ { name: 'avatar', maxCount: 1 }, { name: 'gallery', maxCount: 8 } ]);
-app.post('/cool-profile', cpUpload, function (req, res, next) {
-  // req.files 是一个对象 (String -> Array) 键是文件名, 值是文件数组
-  //
-  //  req.files['avatar'][0] -> File
-  //  req.files['gallery'] -> Array
-  //
-  // req.body 将具有文本域数据, 如果存在的话
-});
+app.post(
+  '/files',
+  multerUpload.fields(
+    [
+      { name: 'avatar', maxCount: 1 },
+      { name: 'gallery', maxCount: 8 }
+    ]
+  ),
+  (req, res, next) => {
+    // console.log('files', req.files,req.files.avatar,req.files.gallery);
+    //  req.files 是一个对象 (String -> Array) 键是文件名, 值是文件数组
+    //  req.files['avatar'][0] -> File
+    //  req.files['gallery'] -> Array
+    //  req.body 将具有文本域数据, 如果存在的话
+    const avatar = req.files.avatar || [];
+    const gallery = req.files.gallery || [];
+    avatar.forEach(v => {
+      renameFile(v);
+    });
+    gallery.forEach(v => {
+      renameFile(v);
+    });
+    res.send({
+      code: 200,
+      data: req.files,
+      decs: 'success'
+    })
+  }
+);
+
+function renameFile(file) {
+  // 图片会放在uploads目录并且没有后缀，需转存，用到fs模块，对临时文件转存，fs.rename(oldPath, newPath,callback);
+  fs.rename(
+    file.path,
+    uploadDir2 + file.originalname,
+    err => {
+      if (err) {
+        throw err;
+      } else {
+        console.log(`文件${ file.originalname }上传且重命名成功！`);
+      }
+    }
+  )
+}
 
 app.listen(5000, () => {
   console.log('服务启动完成，端口监听5000！');

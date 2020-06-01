@@ -96,6 +96,16 @@
       max-width: 300px;
       border-radius: 8px;
     }
+
+    .upload-btn {
+      width: 200px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 4px;
+      border: 1px solid #dcdcdc;
+    }
   </style>
   <title>上传文件</title>
 </head>
@@ -135,41 +145,39 @@
   </div>
 </div>
 
-<!--&lt;!&ndash;enctype="multipart/form-data"&ndash;&gt;-->
-<!--&lt;!&ndash;file域的 multiple="multiple" 决定一个文件域可以上传多个图片&ndash;&gt;-->
-<form name="uploadForm"
-      id="uploadForm"
-      method="post"
-      enctype="multipart/form-data"
-      action="http://localhost:5000/upload/single"
-      target="uploadFrame">
-  <p style="margin:10px 0;">上传图片:
-    <input type="text" name="name" value="xiangheng">
-    <input type="file" name="imageFile" multiple="multiple"/>
-    <input type="submit" id="fileSubmit" value="上传"/>
+<form
+  method="post"
+  enctype="multipart/form-data"
+  action="http://localhost:5000/upload/single"
+>
+  <p class="upload-btn">单选上传图片:
+    <input type="file" name="imageFile"/>
+    <input type="submit" value="单选上传"/>
   </p>
 </form>
 
-<form name="uploadForm"
-      id="uploadForm2"
-      method="post"
-      enctype="multipart/form-data"
-      action="http://localhost:5000/upload/single"
-      target="uploadFrame">
-  <p style="margin:10px 0;">上传图片:
-    <input type="text" name="name" value="xiangheng">
+<form
+  method="post"
+  enctype="multipart/form-data"
+  action="http://localhost:5000/upload/more"
+>
+  <p class="upload-btn">多选上传图片:
     <input type="file" name="imageFile" multiple="multiple"/>
-    <input type="submit" id="fileSubmit2" value="上传"/>
+    <input type="submit" value="多选上传"/>
   </p>
 </form>
 
-<div>
-  <input type="file" id="file2" name="imageFile"/>
-</div>
-
-<div>
-  <input type="file" id="file3" name="imageFile" multiple="multiple"/>
-</div>
+<form
+  method="post"
+  enctype="multipart/form-data"
+  action="http://localhost:5000/files"
+>
+  <p class="upload-btn">上传文件:
+    <input type="file" name="avatar"/>
+    <input type="file" name="gallery" multiple="multiple"/>
+    <input type="submit" value="上传文件"/>
+  </p>
+</form>
 <script src="./lib/jquery-1.10.2.min.js"></script>
 <script src="./bootstrap/bootstrap.min.js"></script>
 <script src="./lib/spark-md5.min.js"></script>
