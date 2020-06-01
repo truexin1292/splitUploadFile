@@ -178,6 +178,11 @@
     <input type="submit" value="上传文件"/>
   </p>
 </form>
+
+<form enctype='multipart/form-data' id="ajaxForm">
+  <input type="file" name="imageFile" id="uploadFile" />
+</form>
+
 <script src="./lib/jquery-1.10.2.min.js"></script>
 <script src="./bootstrap/bootstrap.min.js"></script>
 <script src="./lib/spark-md5.min.js"></script>
@@ -336,17 +341,23 @@
     }, 3000)
   }
 
-  $("#file2").on('change', function () {
-    file = this.files[0];
-    $.post({
+  $("#uploadFile").on('change', function () {
+    const formData = new FormData($('#ajaxForm')[0]);
+    $.ajax({
       url: baseUrl + "/upload/single",
-      data: {
-        imageFile: file
-      }, //刚刚构建的form数据对象
-      success: function (data) {
-        console.log(data)
+      type: 'POST',
+      data: formData,
+      async: false,
+      cache: false,
+      contentType: false,
+      processData: false,
+      success: data => {
+        console.log('upload data', data);
+      },
+      error: err => {
+        console.log("err", err);
       }
-    }, 'json')
+    });
   });
 </script>
 </body>

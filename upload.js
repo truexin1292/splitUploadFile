@@ -6,6 +6,7 @@ const concat = require('concat-files');
 const opn = require('opn');
 const multer = require('multer');//接收图片
 const webp = require('webp-converter');
+const bodyParser = require('body-parser');
 
 const app = express();
 const uploadDir = 'nodeServer/uploads';
@@ -13,6 +14,7 @@ const uploadDir2 = 'public/uploads/';
 
 // 处理静态资源
 app.use(express.static(path.join(__dirname)));
+// app.use(bodyParser.json());
 
 // 处理跨域
 app.all('*', (req, res, next) => {
@@ -234,7 +236,7 @@ app.post(
     })
     res.send({
       code: 200,
-      data: req.files,
+      data: files,
       decs: 'success'
     })
   }
@@ -251,39 +253,49 @@ app.post(
     renameFile(req.file);
     if (imgType === "image/png" || imgType === "image/jpeg") {
       // 压缩转换为webp格式图片 webp.cwebp前两个参数，第一个为原文件地址，第二个为生成的目标文件
-      webp.cwebp(
+      await webp.cwebp(
         originUrl,
         webpUrl,
         "-q 80",
-        (status, error) => {
-          console.log(status, error);
-          //第一种方式
-          res.download(webpUrl); //直接调用download方法即可
+        (status, err) => {
+          console.log(status, err);
+          if (err) {
+            console.log('cwebp转化出错：', err);
+            return;
+          }
+          // 压缩图片为webp格式后删除原文件
+          fs.unlink(
+            originUrl, err => {
+              if (err) {
+                throw err;
+              } else {
+                console.log('删除文件成功');
+              }
+            }
+          );
 
-          //第二种方式
+          // 第一种方式：下载
+          // res.download(webpUrl); //直接调用download方法即可
+
+          // 第二种方式：下载
           // let load = fs.createReadStream(__dirname + '/' + webpUrl); //创建输入流入口
           // res.writeHead(200, {
           //   'Content-Type': 'application/force-download',
           //   'Content-Disposition': 'attachment; filename=name'
           // });
           // load.pipe(res);// 通过管道方式写入
+
+          // 第三种方式：返回数据
+          res.send({
+            code: 200,
+            data: {
+              ...req.file,
+              webpUrl: webpUrl
+            },
+            decs: 'success'
+          })
         }
       );
-      // 压缩图片为webp格式后删除原文件
-      await fs.unlink(
-        originUrl, err => {
-          if (err) {
-            throw err;
-          } else {
-            console.log('删除文件成功');
-          }
-        }
-      );
-      await res.send({
-        code: 200,
-        data: req.file,
-        decs: 'success'
-      })
     }
   }
 );
@@ -337,3 +349,10 @@ app.listen(5000, () => {
   console.log('服务启动完成，端口监听5000！');
   opn('http://localhost:5000');
 });
+
+
+// app.get("/form", function (req, res) { res.send(fs.readFileSync("./form.html", "utf8")) });
+// 读取文件流并写入到public/test.png
+// fs.writeFileSync('public/test.png', fs.readFileSync(files.upload.path));
+//重定向到结果页
+// res.redirect('/public/result.html');
